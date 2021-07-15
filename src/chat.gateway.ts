@@ -1,33 +1,29 @@
-import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
+import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Server } from 'http';
+import { Socket } from 'socket.io';
 
-@WebSocketGateway(5021, { namespace: 'chat'})
-export class ChatGateway {
-  @WebSocketServer()
-  server;
+@WebSocketGateway(5021, { transports: ['websocket'], namespace: 'chat' })
+export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+  constructor() { }
+  @WebSocketServer() server: Server;
+  private logger: Logger = new Logger('AppGateway');
 
-  wsClients = [];
-
-  @SubscribeMessage('hihi')
-  connectSomeone(@MessageBody() data: string, @ConnectedSocket() client) {
-    const [nickname, room] = data;
-    console.log(`${nickname}님이 코드: ${room}방에 접속했습니다.`);
-    const comeOn = `${nickname}님이 입장했습니다.`;
-    this.server.emit('comeOn' + room, comeOn);
-    this.wsClients.push(client);
+  @SubscribeMessage('events')
+  handleEvent(@MessageBody() data: string): string {
+    console.log(data);
+    return data;
   }
 
-  private broadcast(event, client, message: any) {
-    for (let c of this.wsClients) {
-      if (client.id == c.id)
-        continue;
-      c.emit(event, message);
-    }
+  afterInit(server: Server) {
+    this.logger.log('Init');
   }
 
-  @SubscribeMessage('send')
-  sendMessage(@MessageBody() data: string, @ConnectedSocket() client) {
-    const [room, nickname, message] = data;
-    console.log(`${client.id} : ${data}`);
-    this.broadcast(room, client, [nickname, message]);
+  handleDisconnect(client: Socket) {
+    this.logger.log(`Client Disconnected : ${client.id}`);
+  }
+
+  handleConnection(client: Socket, ...args: any[]) {
+    this.logger.log(`Client Connected : ${client.id}`);
   }
 }
