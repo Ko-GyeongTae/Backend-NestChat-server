@@ -3,15 +3,16 @@ import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayDisconnect,
 import { Server } from 'http';
 import { Socket } from 'socket.io';
 
-@WebSocketGateway(5021, { transports: ['websocket'], namespace: 'chat' })
+@WebSocketGateway()
 export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   constructor() { }
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('AppGateway');
 
-  @SubscribeMessage('events')
-  handleEvent(@MessageBody() data: string): string {
-    console.log(data);
+  @SubscribeMessage('msgToServer')
+  handleEvent(client: Socket, data: string): string {
+    this.logger.log(data);
+    this.server.emit('msgToClient', data, client.id);
     return data;
   }
 
@@ -24,6 +25,8 @@ export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   }
 
   handleConnection(client: Socket, ...args: any[]) {
+    console.log(client);
+    console.log(args);
     this.logger.log(`Client Connected : ${client.id}`);
   }
 }
