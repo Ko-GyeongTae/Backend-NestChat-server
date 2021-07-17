@@ -4,16 +4,15 @@ import { Server } from 'http';
 import { Socket } from 'socket.io';
 
 @WebSocketGateway()
-export class ChatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class AppGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   constructor() { }
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('AppGateway');
 
   @SubscribeMessage('msgToServer')
-  handleEvent(client: Socket, data: string): string {
+  handleEvent(client: Socket, data: any): void {
     this.logger.log(data);
     this.server.emit('msgToClient', data, client.id);
-    return data;
   }
 
   afterInit(server: Server) {
